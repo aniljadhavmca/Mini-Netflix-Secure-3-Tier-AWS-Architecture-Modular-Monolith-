@@ -1,10 +1,9 @@
 const { readDb } = require("../../config/db");
-const AWS = require("aws-sdk");
-
-const s3 = new AWS.S3({ region: process.env.AWS_REGION });
+const s3 = require("../../config/s3");
 
 exports.getMovies = (req, res) => {
   readDb.query("SELECT * FROM movies", (err, results) => {
+    if (err) return res.status(500).json(err);
     res.json(results);
   });
 };
@@ -14,11 +13,15 @@ exports.streamMovie = (req, res) => {
     "SELECT video_key FROM movies WHERE id=?",
     [req.params.id],
     (err, results) => {
+      if (err) return res.status(500).json(err);
+      if (!results.length) return res.status(404).json({ message: "Movie not found" });
+
       const url = s3.getSignedUrl("getObject", {
         Bucket: process.env.S3_BUCKET,
         Key: results[0].video_key,
         Expires: 300
       });
+
       res.json({ url });
     }
   );

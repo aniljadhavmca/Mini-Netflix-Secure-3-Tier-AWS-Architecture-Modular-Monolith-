@@ -1,6 +1,7 @@
 import { useEffect,useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api/axios";
+import Navbar from "../components/Navbar";
 
 export default function Player(){
   const {id}=useParams();
@@ -11,10 +12,13 @@ export default function Player(){
   },[id]);
 
   return (
-    <div style={{textAlign:"center",marginTop:"20px"}}>
-      <video width="800" controls>
-        <source src={url} type="video/mp4"/>
-      </video>
-    </div>
+    <>
+      <Navbar />
+      <div style={{paddingTop:"120px", textAlign:"center"}}>
+        <video width="900" controls>
+          <source src={url} type="video/mp4"/>
+        </video>
+      </div>
+    </>
   );
 }

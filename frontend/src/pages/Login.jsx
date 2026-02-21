@@ -12,11 +12,13 @@ export default function Login() {
   };
 
   return (
-    <div style={{textAlign:"center",marginTop:"100px"}}>
-      <h2>MiniFlix Login</h2>
-      <input placeholder="Email" onChange={e=>setEmail(e.target.value)} /><br/><br/>
-      <input type="password" placeholder="Password" onChange={e=>setPassword(e.target.value)} /><br/><br/>
-      <button onClick={login}>Login</button>
+    <div className="login-container">
+      <div className="login-box">
+        <h2>Sign In</h2>
+        <input placeholder="Email" onChange={e=>setEmail(e.target.value)} /><br/><br/>
+        <input type="password" placeholder="Password" onChange={e=>setPassword(e.target.value)} /><br/><br/>
+        <button onClick={login}>Login</button>
+      </div>
     </div>
   );
 }

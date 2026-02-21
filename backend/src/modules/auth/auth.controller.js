@@ -9,7 +9,10 @@ exports.register = async (req, res) => {
   writeDb.query(
     "INSERT INTO users (name,email,password) VALUES (?,?,?)",
     [name, email, hash],
-    () => res.send("Registered")
+    (err) => {
+      if (err) return res.status(500).json(err);
+      res.json({ message: "User registered" });
+    }
   );
 };
 
@@ -20,14 +23,17 @@ exports.login = (req, res) => {
     "SELECT * FROM users WHERE email=?",
     [email],
     async (err, results) => {
-      if (!results.length) return res.status(404).send("Not found");
+      if (err) return res.status(500).json(err);
+      if (!results.length) return res.status(404).json({ message: "User not found" });
 
-      const valid = await bcrypt.compare(password, results[0].password);
-      if (!valid) return res.status(401).send("Invalid");
+      const user = results[0];
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) return res.status(401).json({ message: "Invalid credentials" });
 
       const token = jwt.sign(
-        { id: results[0].id, role: results[0].role },
-        process.env.JWT_SECRET
+        { id: user.id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "2h" }
       );
 
       res.json({ token });
