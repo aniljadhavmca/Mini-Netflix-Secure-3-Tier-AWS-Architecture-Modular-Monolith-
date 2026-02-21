@@ -1,136 +1,85 @@
-# 🎬 Mini Netflix – Secure 3-Tier AWS Architecture (Modular Monolith)
+# 🎬 Mini Netflix – Production-Style Modular Monolith on AWS
 
-A production-style video streaming application built using a modular monolithic backend and secure AWS 3-tier architecture.
+A Netflix-inspired video streaming application built using a Modular Monolith backend
+and secure AWS 3-Tier Architecture.
 
 ---
 
-# 🏗 Architecture Overview
+## 🏗 Architecture
 
 User
-↓
+ ↓
 Application Load Balancer (Public Subnet)
-↓
-Frontend EC2 (Private Subnet – Nginx + React Build)
-↓
-Backend EC2 (Private Subnet – Node.js Modular Monolith)
-↓
-Amazon RDS (Primary + Read Replica – Private Subnets)
-↓
-Amazon S3 (Private Bucket – Video Storage)
+ ↓
+Frontend EC2 (Private - Nginx + React)
+ ↓
+Backend EC2 (Private - Node.js API)
+ ↓
+Amazon RDS (Primary + Read Replica)
+ ↓
+Amazon S3 (Private Bucket)
 
 ---
 
-# 🔐 Security Design
+## 🔐 Security
 
-* Only ALB is public.
-* All EC2 instances are private (no public IP).
-* RDS is private.
-* S3 bucket blocks public access.
-* Backend SG allows traffic only from ALB SG.
-* RDS SG allows traffic only from Backend SG.
-* JWT-based authentication.
-* Video streaming via S3 Pre-Signed URL.
-
----
-
-# 🚀 Features
-
-* User Registration & Login
-* JWT Authentication
-* Role-based access (Admin/User)
-* Movie listing
-* Secure streaming
-* RDS Read Replica support
-* Clean modular backend architecture
+- Only ALB is public
+- EC2 instances are private
+- RDS in private subnet
+- S3 bucket blocks public access
+- JWT authentication
+- Signed URL streaming
+- IAM role for S3 access
 
 ---
 
-# 🛠 Tech Stack
+## 🚀 Features
+
+- User Registration & Login
+- JWT Authentication
+- Netflix-style UI
+- Movie grid with hover
+- Secure streaming via S3 signed URL
+- Health endpoint
+- Modular backend structure
+
+---
+
+## 🛠 Tech Stack
 
 Frontend:
-
-* React
-* Axios
-* React Router
-* Nginx
+- React
+- Axios
+- React Router
+- Custom CSS
 
 Backend:
-
-* Node.js
-* Express
-* MySQL2
-* JWT
-* AWS SDK
+- Node.js
+- Express
+- MySQL2
+- JWT
+- Bcrypt
+- AWS SDK
 
 Database:
-
-* Amazon RDS (MySQL 8)
-* Read Replica
+- Amazon RDS MySQL
+- Read Replica
 
 Storage:
-
-* Amazon S3
-
-Infrastructure:
-
-* VPC (Public + Private Subnets)
-* NAT Gateway
-* ALB
-* Security Groups
+- Amazon S3
 
 ---
 
-# 📂 Backend Structure
+## 📂 Project Structure
 
-```
-mininetflix-backend/
-│
-├── src/
-│   ├── config/
-│   │   ├── db.js
-│   │   ├── s3.js
-│   │
-│   ├── modules/
-│   │   ├── auth/
-│   │   │   ├── auth.controller.js
-│   │   │   ├── auth.routes.js
-│   │   │
-│   │   ├── movies/
-│   │   │   ├── movie.controller.js
-│   │   │   ├── movie.routes.js
-│   │
-│   ├── middleware/
-│   │   ├── auth.middleware.js
-│   │
-│   ├── app.js
-│   └── server.js
-│
-├── package.json
-└── .env
-```
+mininetflix-complete-with-readme/
+ ├── backend/
+ └── frontend/
 
 ---
 
-# 📂 Frontend Structure
+## 🗄 Database Schema
 
-```
-mininetflix-frontend/
-│
-├── src/
-│   ├── api/axios.js
-│   ├── pages/Login.jsx
-│   ├── pages/Home.jsx
-│   ├── pages/Player.jsx
-│   ├── App.jsx
-│
-├── package.json
-```
-
----
-
-# 🗄 Database Schema
-
-```
 CREATE DATABASE mininetflix;
 
 CREATE TABLE users (
@@ -147,20 +96,62 @@ CREATE TABLE movies (
   description TEXT,
   video_key VARCHAR(255)
 );
-```
 
 ---
 
-# 🌐 ALB Routing Rules
+## ⚙️ Backend Setup
 
-| Path   | Target       |
-| ------ | ------------ |
-| /api/* | Backend EC2  |
-| /*     | Frontend EC2 |
+cd backend
+npm install
+
+Create .env:
+
+DB_PRIMARY_HOST=
+DB_REPLICA_HOST=
+DB_USER=
+DB_PASS=
+DB_NAME=mininetflix
+JWT_SECRET=supersecretkey
+AWS_REGION=ap-south-1
+S3_BUCKET=
+PORT=4000
+
+npm start
 
 ---
 
-# 👨‍💻 Author
+## 🎨 Frontend Setup
+
+cd frontend
+npm install
+npm run build
+
+Copy build to nginx:
+
+sudo rm -rf /usr/share/nginx/html/*
+sudo cp -r build/* /usr/share/nginx/html/
+sudo systemctl restart nginx
+
+---
+
+## 🌐 ALB Routing
+
+/api/*  → Backend
+/*      → Frontend
+
+---
+
+## 🔒 Security Groups
+
+Backend SG:
+Allow 4000 from ALB SG
+
+RDS SG:
+Allow 3306 from Backend SG
+
+---
+
+## 👨‍💻 Author
 
 Anil Jadhav
 AWS | DevOps | Full Stack Developer
