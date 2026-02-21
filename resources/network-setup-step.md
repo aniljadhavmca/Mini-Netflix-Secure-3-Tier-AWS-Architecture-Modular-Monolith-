@@ -1,36 +1,43 @@
-# 🚀 Mini Netflix – Complete AWS Deployment Guide  
-## (Production-Style 3-Tier Architecture Setup)
+# 🚀 Mini Netflix – Complete AWS Deployment Guide
+## Production-Grade 3-Tier Architecture (us-east-1)
 
-This document explains how to build and deploy the Mini Netflix application on AWS from scratch.
+This guide explains how to deploy the Mini Netflix application in AWS using a secure, production-style 3-tier architecture in:
 
-Architecture Overview:
-
-Internet  
-↓  
-Application Load Balancer (Public Subnets)  
-↓  
-Frontend EC2 (Private Subnet)  
-↓  
-Backend EC2 (Private Subnet)  
-↓  
-RDS (Primary + Read Replica – Private DB Subnets)  
-↓  
-S3 (Private Bucket)  
+Region: us-east-1 (N. Virginia)
 
 ---
 
-# 🟢 PHASE 1 — VPC SETUP
+# 🏗 Final Architecture Overview
+
+Internet
+↓
+Application Load Balancer (Public Subnets)
+↓
+Frontend EC2 (Private Subnet – Uses NAT for internet access)
+↓
+Backend EC2 (Private Subnet – Uses NAT for internet access)
+↓
+RDS (Primary + Read Replica – Private DB Subnets)
+↓
+S3 (Private Bucket)
+
+Public Subnet contains:
+- Application Load Balancer
+- NAT Gateway
+- Bastion Host
+
+---
+
+# 🟢 PHASE 1 — VPC SETUP (us-east-1)
 
 ## 1️⃣ Create VPC
 
-Go to:  
-AWS Console → VPC → Create VPC
+VPC → Create VPC
 
-- Name: `mininetflix-vpc`
-- IPv4 CIDR: `10.0.0.0/16`
+- Name: mininetflix-vpc
+- IPv4 CIDR: 10.0.0.0/16
 - Tenancy: Default
-
-Click Create.
+- Region: us-east-1
 
 ---
 
@@ -39,28 +46,28 @@ Click Create.
 Create 4 subnets:
 
 ### Public Subnet A
-- Name: `public-subnet-a`
-- AZ: ap-south-1a
-- CIDR: `10.0.1.0/24`
-- Enable Auto-assign Public IP
+- Name: public-subnet-a
+- AZ: us-east-1a
+- CIDR: 10.0.1.0/24
+- Auto-assign Public IP: Enabled
 
 ### Public Subnet B
-- Name: `public-subnet-b`
-- AZ: ap-south-1b
-- CIDR: `10.0.2.0/24`
-- Enable Auto-assign Public IP
+- Name: public-subnet-b
+- AZ: us-east-1b
+- CIDR: 10.0.2.0/24
+- Auto-assign Public IP: Enabled
 
 ### Private Subnet A
-- Name: `private-subnet-a`
-- AZ: ap-south-1a
-- CIDR: `10.0.3.0/24`
-- Disable Public IP
+- Name: private-subnet-a
+- AZ: us-east-1a
+- CIDR: 10.0.3.0/24
+- No public IP
 
 ### Private Subnet B
-- Name: `private-subnet-b`
-- AZ: ap-south-1b
-- CIDR: `10.0.4.0/24`
-- Disable Public IP
+- Name: private-subnet-b
+- AZ: us-east-1b
+- CIDR: 10.0.4.0/24
+- No public IP
 
 ---
 
@@ -68,45 +75,94 @@ Create 4 subnets:
 
 VPC → Internet Gateway → Create
 
-- Name: `mininetflix-igw`
-
-Attach it to `mininetflix-vpc`.
+- Name: mininetflix-igw
+- Attach to mininetflix-vpc
 
 ---
 
-## 4️⃣ Configure Route Tables
+## 4️⃣ Route Tables
 
 ### Public Route Table
 
-- Add route:
-  - Destination: `0.0.0.0/0`
-  - Target: Internet Gateway
+Add route:
+Destination: 0.0.0.0/0
+Target: Internet Gateway
 
-Associate with:
+Associate:
 - Public Subnet A
 - Public Subnet B
 
+---
+
 ### Private Route Table
 
-No internet route required.
-
-Associate with:
+Associate:
 - Private Subnet A
 - Private Subnet B
 
+(Internet route will be added via NAT Gateway in next phase.)
+
 ---
 
-# 🟢 PHASE 2 — RDS SETUP
+# 🟢 PHASE 2 — NAT GATEWAY (Required for BOTH Frontend & Backend)
+
+Since Frontend and Backend EC2 are private, they need internet access to:
+
+- Run npm install
+- Run git clone
+- Install packages
+- Access external APIs
+- Download updates
+
+Without NAT → these commands will fail.
+
+---
+
+## 1️⃣ Allocate Elastic IP
+
+EC2 → Elastic IP → Allocate new Elastic IP
+
+---
+
+## 2️⃣ Create NAT Gateway
+
+VPC → NAT Gateway → Create
+
+- Subnet: Public Subnet A
+- Elastic IP: Select allocated IP
+- Name: mininetflix-nat
+
+Wait until status = Available.
+
+---
+
+## 3️⃣ Update Private Route Table
+
+Add route:
+
+Destination: 0.0.0.0/0
+Target: NAT Gateway
+
+Now BOTH:
+
+- Frontend EC2
+- Backend EC2
+
+can access the internet securely via NAT.
+
+---
+
+# 🟢 PHASE 3 — RDS SETUP
 
 ## 1️⃣ Create DB Subnet Group
 
 RDS → Subnet Groups → Create
 
-- Name: `mininetflix-db-subnet`
-- VPC: `mininetflix-vpc`
+- Name: mininetflix-db-subnet
+- VPC: mininetflix-vpc
 - Select:
-  - Private Subnet A
-  - Private Subnet B
+  - private-subnet-a
+  - private-subnet-b
 
 ---
 
@@ -116,16 +172,12 @@ RDS → Create Database
 
 - Engine: MySQL 8
 - Template: Production
-- DB Identifier: `mininetflix-db`
-- Username: admin
-- Password: strong password
+- DB identifier: mininetflix-db
+- Master username: admin
+- Public access: NO
 - VPC: mininetflix-vpc
 - Subnet group: mininetflix-db-subnet
-- Public access: NO
 - Multi-AZ: Optional
-- Storage: 20GB (minimum)
-
-Create database.
 
 ---
 
@@ -135,63 +187,128 @@ After primary is available:
 
 - Select primary DB
 - Click Create Read Replica
-- Same VPC
-- Same subnet group
+- Same VPC and subnet group
 
 ---
 
-# 🟢 PHASE 3 — S3 SETUP
+# 🟢 PHASE 4 — S3 SETUP
 
-Create bucket:
+Create S3 bucket:
 
-- Name: `mininetflix-videos`
-- Region: Same as VPC
-- Block all public access: ENABLED
+- Name: mininetflix-videos
+- Region: us-east-1
+- Block all public access: Enabled
 
-Upload dummy videos.
+Upload your dummy videos.
 
 ---
 
-# 🟢 PHASE 4 — SECURITY GROUPS
+# 🟢 PHASE 5 — SECURITY GROUPS
 
-## 1️⃣ ALB Security Group
+## ALB Security Group
 
 Inbound:
-- HTTP (80) from `0.0.0.0/0`
+- HTTP (80) from 0.0.0.0/0
+
+Outbound:
+- Allow All
 
 ---
 
-## 2️⃣ Frontend EC2 SG
+## Bastion Host Security Group
 
 Inbound:
-- HTTP (80) from ALB Security Group
+- SSH (22) from YOUR public IP only
+
+Outbound:
+- Allow All
 
 ---
 
-## 3️⃣ Backend EC2 SG
+## Frontend EC2 Security Group
 
 Inbound:
-- Custom TCP 4000 from ALB Security Group
+- HTTP (80) from ALB SG
+- SSH (22) from Bastion SG
+
+Outbound:
+- Allow All (required for NAT internet access)
 
 ---
 
-## 4️⃣ RDS Security Group
+## Backend EC2 Security Group
 
 Inbound:
-- MySQL 3306 from Backend Security Group
+- Custom TCP 4000 from ALB SG
+- SSH (22) from Bastion SG
+
+Outbound:
+- Allow All (required for NAT internet access)
 
 ---
 
-# 🟢 PHASE 5 — EC2 INSTANCES
+## RDS Security Group
 
-## 1️⃣ Bastion Host (Optional but Recommended)
+Inbound:
+- MySQL 3306 from Backend SG
 
-- Public Subnet
-- Allow SSH from your IP
+Outbound:
+- Default
 
 ---
 
-## 2️⃣ Frontend EC2
+# 🟢 PHASE 6 — BASTION HOST
+
+Bastion is used to SSH into private EC2 instances.
+
+---
+
+## Launch Bastion EC2
+
+- Subnet: Public Subnet A
+- Auto-assign Public IP: YES
+- Security Group: Bastion SG
+- Key pair: Create or select existing
+
+---
+
+## SSH into Bastion
+
+```
+ssh -i key.pem ec2-user@Bastion-Public-IP
+```
+
+---
+
+## SSH into Backend from Bastion
+
+```
+ssh -i key.pem ec2-user@Private-Backend-IP
+```
+
+Same for frontend EC2.
+
+---
+
+# 🟢 PHASE 7 — EC2 INSTANCES
+
+## Backend EC2
+
+- Private Subnet B
+- No public IP
+- Attach Backend SG
+- Attach IAM Role with S3 access
+
+Install:
+
+```
+sudo yum update -y
+sudo yum install nodejs -y
+```
+
+---
+
+## Frontend EC2
 
 - Private Subnet A
 - No public IP
@@ -199,7 +316,7 @@ Inbound:
 
 Install:
 
-```bash
+```
 sudo yum update -y
 sudo yum install nginx -y
 sudo systemctl start nginx
@@ -207,28 +324,11 @@ sudo systemctl start nginx
 
 ---
 
-## 3️⃣ Backend EC2
-
-- Private Subnet B
-- No public IP
-- Attach Backend SG
-- Attach IAM Role with S3 access
-
-Install Node:
-
-```bash
-sudo yum install nodejs -y
-```
-
----
-
-# 🟢 PHASE 6 — DEPLOY BACKEND
-
-Upload backend folder to EC2.
+# 🟢 PHASE 8 — DEPLOY BACKEND
 
 Inside backend folder:
 
-```bash
+```
 npm install
 nano .env
 ```
@@ -243,30 +343,28 @@ DB_PASS=password
 DB_NAME=mininetflix
 
 JWT_SECRET=supersecretkey
-AWS_REGION=ap-south-1
+AWS_REGION=us-east-1
 S3_BUCKET=mininetflix-videos
 PORT=4000
 ```
 
-Start server:
+Start:
 
-```bash
+```
 npm start
 ```
 
 Test:
 
-```bash
+```
 curl localhost:4000/health
 ```
 
 ---
 
-# 🟢 PHASE 7 — DEPLOY FRONTEND
+# 🟢 PHASE 9 — DEPLOY FRONTEND
 
-On frontend EC2:
-
-```bash
+```
 npm install
 npm run build
 sudo cp -r build/* /usr/share/nginx/html/
@@ -275,24 +373,24 @@ sudo systemctl restart nginx
 
 ---
 
-# 🟢 PHASE 8 — APPLICATION LOAD BALANCER
+# 🟢 PHASE 10 — APPLICATION LOAD BALANCER
 
 Create ALB:
 
 - Type: Application
 - Scheme: Internet-facing
-- Subnets: Public A + B
+- Subnets: Public A & B
 - Security Group: ALB SG
 
 ---
 
 ## Create Target Groups
 
-### Frontend TG
+Frontend TG:
 - Instance
 - Port: 80
 
-### Backend TG
+Backend TG:
 - Instance
 - Port: 4000
 
@@ -300,54 +398,43 @@ Create ALB:
 
 ## Configure Listener Rules
 
-Listener: HTTP 80
+HTTP 80:
 
 Rule 1:
-- Path: `/api/*`
-- Forward to Backend TG
+Path: /api/*
+Forward to Backend TG
 
 Default:
-- Forward to Frontend TG
+Forward to Frontend TG
 
 ---
 
-# 🟢 PHASE 9 — FINAL TEST
+# 🔄 Complete Request Flow
 
-Open:
-
-```
-http://ALB-DNS
-```
-
-Test:
-
-- Login
-- Movie list
-- Video streaming
-
----
-
-# 🔁 Complete Request Flow
-
-User → ALB → Frontend  
-Frontend → ALB `/api/*` → Backend  
-Backend → RDS (Read/Write)  
-Backend → S3 (Signed URL)  
-Video Plays Securely  
+User
+↓
+ALB
+↓
+Frontend EC2
+↓
+ALB rule (/api/*)
+↓
+Backend EC2
+↓
+RDS
+↓
+S3 Signed URL
+↓
+Video Streaming
 
 ---
 
-# 🏆 Production Improvements
+# 💰 Cost Note
 
-- Auto Scaling Group
-- HTTPS (ACM)
-- CloudFront CDN
-- Redis (ElastiCache)
-- Secrets Manager
-- NAT Gateway
-- PM2
-- CloudWatch Monitoring
-- Docker & ECS Migration
+NAT Gateway costs around $30/month minimum.
+
+For temporary learning, you may assign public IP to EC2 instead of NAT.
+For production, NAT is the correct architecture.
 
 ---
 
