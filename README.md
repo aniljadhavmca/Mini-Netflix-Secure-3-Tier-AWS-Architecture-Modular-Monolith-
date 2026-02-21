@@ -361,6 +361,19 @@ This application follows a modular monolithic architecture deployed within a sec
 
 ---
 
+## 🛠 Tech Stack
+
+![React](https://img.shields.io/badge/Frontend-React-blue)
+![Node.js](https://img.shields.io/badge/Backend-Node.js-green)
+![Express](https://img.shields.io/badge/Framework-Express-black)
+![MySQL](https://img.shields.io/badge/Database-MySQL-orange)
+![AWS](https://img.shields.io/badge/Cloud-AWS-yellow)
+![S3](https://img.shields.io/badge/Storage-S3-red)
+![RDS](https://img.shields.io/badge/Database-RDS-blue)
+![JWT](https://img.shields.io/badge/Auth-JWT-purple)
+
+---
+
 # 👨‍💻 Author
 
 **Anil Jadhav**  
