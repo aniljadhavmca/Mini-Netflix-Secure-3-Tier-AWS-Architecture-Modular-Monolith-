@@ -5,6 +5,7 @@ A Netflix-inspired video streaming platform built using a **Modular Monolith bac
 
 This project demonstrates real-world cloud architecture patterns, secure infrastructure design, scalable database setup, and modern frontend implementation.
 
+![Mini Netflix Secure 3-Tier AWS Architecture](resources/images/projectview.png)
 ---
 
 # 📌 Project Objective
