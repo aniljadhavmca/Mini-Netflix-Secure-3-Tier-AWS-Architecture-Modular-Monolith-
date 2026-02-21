@@ -1,0 +1,7 @@
+body{margin:0;background:#141414;color:white;font-family:Arial;}
+.navbar{display:flex;justify-content:space-between;padding:20px;background:black;}
+.logo{color:#e50914;font-size:26px;font-weight:bold;}
+.movie-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:20px;padding:40px;}
+.movie-card{background:#222;border-radius:8px;overflow:hidden;transition:.3s;}
+.movie-card:hover{transform:scale(1.08);}
+.login-container{height:100vh;display:flex;justify-content:center;align-items:center;background:black;}
