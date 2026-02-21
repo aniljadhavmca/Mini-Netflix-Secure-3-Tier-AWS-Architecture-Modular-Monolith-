@@ -1,84 +1,191 @@
-# 🎬 Mini Netflix – Production-Style Modular Monolith on AWS
+# 🎬 Mini Netflix  
+## Production-Grade Modular Monolith on AWS (3-Tier Architecture)
 
-A Netflix-inspired video streaming application built using a Modular Monolith backend
-and secure AWS 3-Tier Architecture.
+A Netflix-inspired video streaming platform built using a Modular Monolith backend and deployed in a secure AWS 3-Tier architecture.
+
+This project demonstrates real-world cloud architecture patterns, secure infrastructure design, scalable database setup, and modern frontend implementation.
 
 ---
 
-## 🏗 Architecture
+# 📌 Project Objective
 
-User
- ↓
+The goal of this project is to:
+
+- Build a production-style streaming application
+- Deploy it using secure AWS best practices
+- Implement scalable database architecture (Primary + Read Replica)
+- Secure video streaming using S3 Pre-Signed URLs
+- Follow clean modular backend structure
+- Prepare for Cloud / DevOps / Full Stack interviews
+
+---
+
+# 🏗 High-Level Architecture
+
+Client (Browser)
+↓
 Application Load Balancer (Public Subnet)
- ↓
-Frontend EC2 (Private - Nginx + React)
- ↓
-Backend EC2 (Private - Node.js API)
- ↓
-Amazon RDS (Primary + Read Replica)
- ↓
-Amazon S3 (Private Bucket)
+↓
+Frontend EC2 (Private Subnet - Nginx + React)
+↓
+Backend EC2 (Private Subnet - Node.js + Express)
+↓
+Amazon RDS (Primary + Read Replica - Private Subnets)
+↓
+Amazon S3 (Private Bucket - Video Storage)
 
 ---
 
-## 🔐 Security
+# 🔐 Security Architecture
 
-- Only ALB is public
-- EC2 instances are private
-- RDS in private subnet
-- S3 bucket blocks public access
+This project follows AWS security best practices.
+
+## Network Isolation
+
+- Only the ALB is public
+- Frontend EC2 runs in private subnet
+- Backend EC2 runs in private subnet
+- RDS runs in private DB subnet
+- S3 blocks all public access
+
+## Security Groups
+
+ALB  
+- Allow 80 / 443 from Internet
+
+Frontend EC2  
+- Allow traffic only from ALB
+
+Backend EC2  
+- Allow port 4000 from ALB
+
+RDS  
+- Allow port 3306 from Backend EC2
+
+## IAM Role
+
+Backend EC2 must have IAM role attached with:
+
+Minimum:
+s3:GetObject
+
+Or for development:
+AmazonS3FullAccess
+
+## Application-Level Security
+
 - JWT authentication
-- Signed URL streaming
-- IAM role for S3 access
+- Protected streaming endpoint
+- Signed URL expiry (5 minutes)
 
 ---
 
-## 🚀 Features
+# 🚀 Core Features
 
-- User Registration & Login
-- JWT Authentication
-- Netflix-style UI
-- Movie grid with hover
-- Secure streaming via S3 signed URL
-- Health endpoint
-- Modular backend structure
+## Authentication System
+
+- User Registration
+- User Login
+- Password hashing using bcrypt
+- JWT token (2-hour expiry)
+- Protected routes
+
+## Secure Video Streaming
+
+- Videos stored in private S3 bucket
+- Backend generates Pre-Signed URL
+- URL expires automatically
+- Prevents direct public access
+
+## Database Scalability
+
+- RDS Primary handles writes
+- RDS Read Replica handles reads
+- Improves performance under load
+
+## Modern UI
+
+- Netflix-style dark theme
+- Hero banner
+- Responsive movie grid
+- Hover animations
+- Clean login page
+
+## Backend Design
+
+- Modular Monolith structure
+- Domain separation (Auth / Movies)
+- Clean routing layer
+- Config separation
+- Health check endpoint
 
 ---
 
-## 🛠 Tech Stack
+# 🛠 Technology Stack
 
-Frontend:
-- React
+## Frontend
+
+- React 18
 - Axios
 - React Router
 - Custom CSS
+- Nginx (static hosting)
 
-Backend:
+## Backend
+
 - Node.js
 - Express
 - MySQL2
-- JWT
-- Bcrypt
+- JWT (jsonwebtoken)
+- bcryptjs
 - AWS SDK
 
-Database:
-- Amazon RDS MySQL
+## Database
+
+- Amazon RDS MySQL 8
 - Read Replica
 
-Storage:
-- Amazon S3
+## Storage
+
+- Amazon S3 (Private bucket)
 
 ---
 
-## 📂 Project Structure
+# 📂 Project Structure
 
-mininetflix-complete-with-readme/
- ├── backend/
- └── frontend/
+mininetflix-project/
+
+backend/
+- package.json
+- src/
+  - config/
+    - db.js
+    - s3.js
+  - middleware/
+    - auth.middleware.js
+  - modules/
+    - auth/
+      - auth.controller.js
+      - auth.routes.js
+    - movies/
+      - movie.controller.js
+      - movie.routes.js
+  - app.js
+  - server.js
+
+frontend/
+- package.json
+- src/
+  - api/
+  - components/
+  - pages/
+  - styles/
+  - App.jsx
+  - index.js
 
 ---
 
-## 🗄 Database Schema
+# 🗄 Database Schema
 
 CREATE DATABASE mininetflix;
 
@@ -99,34 +206,51 @@ CREATE TABLE movies (
 
 ---
 
-## ⚙️ Backend Setup
+# ⚙️ Backend Setup
+
+Step 1: Install Dependencies
 
 cd backend
 npm install
 
-Create .env:
+Step 2: Create .env file
 
-DB_PRIMARY_HOST=
-DB_REPLICA_HOST=
-DB_USER=
-DB_PASS=
+DB_PRIMARY_HOST=your-primary-endpoint
+DB_REPLICA_HOST=your-replica-endpoint
+DB_USER=admin
+DB_PASS=password
 DB_NAME=mininetflix
+
 JWT_SECRET=supersecretkey
 AWS_REGION=ap-south-1
-S3_BUCKET=
+S3_BUCKET=your-bucket-name
 PORT=4000
+
+Step 3: Start Backend
 
 npm start
 
+Step 4: Health Check
+
+http://localhost:4000/health
+
+Expected response:
+OK
+
 ---
 
-## 🎨 Frontend Setup
+# 🎨 Frontend Setup
+
+Step 1:
 
 cd frontend
 npm install
+
+Step 2:
+
 npm run build
 
-Copy build to nginx:
+Step 3 (Frontend EC2 Deployment):
 
 sudo rm -rf /usr/share/nginx/html/*
 sudo cp -r build/* /usr/share/nginx/html/
@@ -134,24 +258,61 @@ sudo systemctl restart nginx
 
 ---
 
-## 🌐 ALB Routing
+# 🌐 ALB Routing Configuration
 
-/api/*  → Backend
-/*      → Frontend
-
----
-
-## 🔒 Security Groups
-
-Backend SG:
-Allow 4000 from ALB SG
-
-RDS SG:
-Allow 3306 from Backend SG
+/api/*  → Backend Target Group
+/*      → Frontend Target Group
 
 ---
 
-## 👨‍💻 Author
+# 🔄 Request Flow
+
+Login Flow
+Frontend → /api/auth/login → Backend → RDS Primary → JWT returned
+
+Fetch Movies
+Frontend → /api/movies → Backend → RDS Read Replica → JSON response
+
+Stream Movie
+Frontend → /api/movies/stream/:id
+Backend verifies JWT → Generates S3 Signed URL → Video plays securely
+
+---
+
+# 🧪 Testing Checklist
+
+- Backend starts successfully
+- /health returns OK
+- Login returns JWT
+- Movies endpoint returns JSON
+- Streaming endpoint returns signed URL
+- Video plays successfully
+- RDS replica used for reads
+- Security groups properly configured
+
+---
+
+# 🏆 Interview Explanation (Senior-Level)
+
+This application follows a modular monolithic architecture deployed within a secure AWS 3-tier environment. Business domains are separated internally while deployed as a single scalable unit. Read traffic is offloaded to an RDS Read Replica, and secure streaming is achieved using S3 Pre-Signed URLs. All infrastructure components except the ALB are deployed in private subnets following least-privilege security principles.
+
+---
+
+# 📈 Future Enhancements
+
+- Auto Scaling Group
+- HTTPS via ACM
+- CloudFront CDN
+- Redis (ElastiCache)
+- Centralized logging
+- Docker containerization
+- ECS migration
+- CI/CD pipeline
+- Monitoring via CloudWatch
+
+---
+
+# 👨‍💻 Author
 
 Anil Jadhav
 AWS | DevOps | Full Stack Developer
