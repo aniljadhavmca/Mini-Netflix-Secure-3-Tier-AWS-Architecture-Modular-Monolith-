@@ -211,9 +211,11 @@ mininetflix-project/
 # 🗄 Database Schema
 
 ```sql
-CREATE DATABASE mininetflix;
+CREATE DATABASE IF NOT EXISTS mininetflix;
 
-CREATE TABLE users (
+USE mininetflix;
+
+CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100),
   email VARCHAR(100) UNIQUE,
@@ -221,7 +223,7 @@ CREATE TABLE users (
   role ENUM('admin','user') DEFAULT 'user'
 );
 
-CREATE TABLE movies (
+CREATE TABLE IF NOT EXISTS movies (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(255),
   description TEXT,
